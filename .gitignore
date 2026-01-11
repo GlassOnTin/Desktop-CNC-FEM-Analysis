@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# FEM results (large files)
+fem/results/*.vtk
+fem/results/*.vtu
+fem/results/*.pvtu
+fem/results/*.h5
+fem/results/*.stl
+fem/results/*.msh
+
+# Keep XDMF metadata files
+!fem/results/*.xdmf
+
+# OpenSCAD exports
+*.stl
+!design/components/*.stl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+/tmp/
+*.tmp
+*.log

@@ -1,0 +1,22 @@
+# CNC Gantry FEM Analysis Dependencies
+
+# Core FEM
+sfepy>=2025.4
+gmsh>=4.15.0
+meshio>=5.3.0
+
+# Numerical computing
+numpy>=2.0.0
+scipy>=1.14.0
+
+# Visualization
+pyvista>=0.44.0
+
+# Mesh utilities
+trimesh>=4.0.0
+
+# Geometry (for 2D profiles)
+shapely>=2.1.0
+
+# Optional: Python CAD (for alternative geometry generation)
+# cadquery>=2.6.0
