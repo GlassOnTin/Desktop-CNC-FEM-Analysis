@@ -138,11 +138,19 @@ Required:
 - `gmsh`
 - `meshio`
 - `numpy`, `scipy`
+- `dolfinx` (FEniCSx)
+- `dolfinx_mpc` (for MPC ties)
 
-For MPC ties:
-- `dolfinx_mpc` (see `requirements.txt`)
+Recommended install (conda/mamba):
+```bash
+mamba create -n cnc-fem -c conda-forge fenics-dolfinx gmsh meshio dolfinx_mpc
+mamba activate cnc-fem
+```
 
-FEniCSx should already be installed in your environment.
+If you already have FEniCSx installed:
+```bash
+pip install gmsh meshio dolfinx_mpc
+```
 
 ---
 
