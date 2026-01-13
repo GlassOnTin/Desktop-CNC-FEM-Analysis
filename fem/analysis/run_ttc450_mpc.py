@@ -22,6 +22,7 @@ def main() -> None:
     parser.add_argument("--mesh-only", action="store_true", help="Generate mesh only; skip MPC solve")
     parser.add_argument("--self-check", action="store_true", help="Validate facet tags after meshing")
     parser.add_argument("--write-xdmf", action="store_true", help="Write XDMF for visualization")
+    parser.add_argument("--write-tags-json", action="store_true", help="Write tag IDs + counts to JSON")
     args = parser.parse_args()
 
     output_msh = Path("fem/results/ttc450_combined.msh")
@@ -34,10 +35,12 @@ def main() -> None:
         include_base=args.include_base,
     )
 
-    if args.self_check or args.write_xdmf:
+    if args.self_check or args.write_xdmf or args.write_tags_json:
         from fem.analysis.fenicsx_tie_parts import _read_mesh_and_tags
         from dolfinx.io import XDMFFile
         from mpi4py import MPI
+        import json
+        import gmsh
 
         domain, cell_tags, facet_tags = _read_mesh_and_tags(output_msh)
         if args.self_check:
@@ -58,6 +61,27 @@ def main() -> None:
                 if facet_tags is not None:
                     xdmf.write_meshtags(facet_tags)
             print(f"Wrote {xdmf_path}")
+
+        if args.write_tags_json:
+            if facet_tags is None:
+                raise RuntimeError("No facet tags found in combined mesh.")
+            gmsh.initialize()
+            gmsh.open(str(output_msh))
+            field_data = {gmsh.model.getPhysicalName(dim, tag): (tag, dim)
+                          for dim, tag in gmsh.model.getPhysicalGroups()}
+            gmsh.finalize()
+
+            tag_counts = {}
+            for name, (tag_id, dim) in field_data.items():
+                if dim != 2:
+                    continue
+                count = int((facet_tags.values == tag_id).sum())
+                tag_counts[name] = {"id": int(tag_id), "dim": int(dim), "count": count}
+
+            json_path = output_msh.with_name(f"{output_msh.stem}_tags.json")
+            with open(json_path, "w") as f:
+                json.dump(tag_counts, f, indent=2)
+            print(f"Wrote {json_path}")
 
     if args.mesh_only:
         print(f"Mesh written to {output_msh}")

@@ -18,7 +18,7 @@ python fem/analysis/run_ttc450_mpc.py --mesh-only
 
 Create the mesh **and** write XDMF + tag counts:
 ```bash
-python fem/analysis/run_ttc450_mpc.py --mesh-only --self-check --write-xdmf
+python fem/analysis/run_ttc450_mpc.py --mesh-only --self-check --write-xdmf --write-tags-json
 ```
 
 Run the **MPC tie solve** (requires `dolfinx_mpc`):
@@ -112,6 +112,7 @@ Optional flags:
 - `--mesh-only` generate mesh only
 - `--self-check` print facet tag counts
 - `--write-xdmf` export XDMF for ParaView
+- `--write-tags-json` write tag IDs + counts JSON
 
 ---
 

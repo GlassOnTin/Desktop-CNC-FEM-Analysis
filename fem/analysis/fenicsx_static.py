@@ -181,7 +181,10 @@ def solve_static(
     load_case: str = 'worst_case',
     load_point: Optional[Tuple[float, float, float]] = None,
     include_gravity: bool = True,
-    force_override: Optional[Tuple[float, float, float]] = None
+    force_override: Optional[Tuple[float, float, float]] = None,
+    mpc_enable: bool = False,
+    mpc_interface_gap: float = 0.2,
+    mpc_tag_names: Optional[Dict[str, str]] = None
 ) -> Dict:
     """Solve static linear elasticity problem.
 
@@ -209,7 +212,7 @@ def solve_static(
         with io.XDMFFile(MPI.COMM_WORLD, str(mesh_path), "r") as xdmf:
             domain = xdmf.read_mesh(name="Grid")
     elif mesh_path.suffix == '.msh':
-        domain, _, _ = io.gmshio.read_from_msh(str(mesh_path), MPI.COMM_WORLD, 0)
+        domain, _, facet_tags = io.gmshio.read_from_msh(str(mesh_path), MPI.COMM_WORLD, 0)
     else:
         raise ValueError(f"Unsupported mesh format: {mesh_path.suffix}. Use .xdmf or .msh")
 
@@ -260,10 +263,63 @@ def solve_static(
 
     print(f"Applied {len(bcs)} boundary condition(s) ({boundary_type})")
 
-    # Solve
-    problem = LinearProblem(a, L, bcs=bcs,
-                           petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
-    uh = problem.solve()
+    # Optional MPC ties for combined meshes
+    if mpc_enable:
+        if mesh_path.suffix != ".msh":
+            raise ValueError("MPC requires .msh input with facet tags.")
+        if facet_tags is None:
+            raise RuntimeError("Facet tags missing for MPC.")
+        try:
+            from dolfinx_mpc import MultiPointConstraint, LinearProblem as MPCLinearProblem
+            from dolfinx_mpc.utils import create_contact_inelastic_condition
+        except Exception as exc:
+            raise RuntimeError("dolfinx_mpc is required for MPC ties.") from exc
+
+        import gmsh
+        gmsh.initialize()
+        gmsh.open(str(mesh_path))
+        field_data = {gmsh.model.getPhysicalName(dim, tag): (tag, dim)
+                      for dim, tag in gmsh.model.getPhysicalGroups()}
+        gmsh.finalize()
+
+        names = {
+            "x_beam_left": "x_beam_end_left",
+            "x_beam_right": "x_beam_end_right",
+            "riser_left": "riser_left_inner",
+            "riser_right": "riser_right_inner",
+        }
+        if mpc_tag_names:
+            names.update(mpc_tag_names)
+
+        def _tag_id(name: str) -> int:
+            if name not in field_data:
+                raise KeyError(f"Missing physical name '{name}' in mesh.")
+            tag_id, dim = field_data[name]
+            if dim != 2:
+                raise ValueError(f"Physical name '{name}' has dim={dim}, expected 2.")
+            return tag_id
+
+        x_left = _tag_id(names["x_beam_left"])
+        x_right = _tag_id(names["x_beam_right"])
+        r_left = _tag_id(names["riser_left"])
+        r_right = _tag_id(names["riser_right"])
+
+        mpc = MultiPointConstraint(V)
+        eps2 = (mpc_interface_gap * 1.5) ** 2
+        create_contact_inelastic_condition(mpc, facet_tags, x_left, r_left, eps2=eps2)
+        create_contact_inelastic_condition(mpc, facet_tags, x_right, r_right, eps2=eps2)
+        mpc.finalize()
+
+        problem = MPCLinearProblem(
+            a, L, bcs=bcs, mpc=mpc,
+            petsc_options={"ksp_type": "preonly", "pc_type": "lu"}
+        )
+        uh = problem.solve()
+    else:
+        # Solve
+        problem = LinearProblem(a, L, bcs=bcs,
+                               petsc_options={"ksp_type": "preonly", "pc_type": "lu"})
+        uh = problem.solve()
 
     # Extract results
     u_array = uh.x.array.reshape((-1, 3))
