@@ -387,6 +387,11 @@ COMPONENTS = {
         'scad_file': 'ttc450_pro.scad',
         'material': 'multi',  # Full machine with mixed materials
     },
+    'ttc450_cbeam': {
+        'scad_module': 'ttc450_cbeam_assembly',
+        'scad_file': 'ttc450_cbeam.scad',
+        'material': 'multi',
+    },
 }
 
 

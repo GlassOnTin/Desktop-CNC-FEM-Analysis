@@ -4,6 +4,7 @@
 sfepy>=2025.4
 gmsh>=4.15.0
 meshio>=5.3.0
+dolfinx_mpc>=0.7.0
 
 # Numerical computing
 numpy>=2.0.0
