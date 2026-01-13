@@ -61,6 +61,89 @@ def create_hollow_rect_profile(width: float, height: float, wall: float) -> int:
     return surface
 
 
+def create_4080_cbeam_profile(wall: float = 2.0) -> int:
+    """Create 4080 C-beam profile in XZ plane (Y=0).
+
+    The C-beam is a 2x4 arrangement of 2020 cores with 2 missing:
+    {{1,1,1,1},   <- Top row: 4 cores (Z+)
+     {1,0,0,1}}   <- Bottom row: 2 cores at ends, C-slot in middle (Z-)
+
+    Profile is 80mm wide (X) x 40mm tall (Z), centered at origin.
+    Each 2020 core is 20mm x 20mm with hollow interior.
+
+    Args:
+        wall: wall thickness of each 2020 core
+
+    Returns:
+        Surface tag
+    """
+    core_size = 20.0  # mm - 2020 profile size
+    inner_size = core_size - 2*wall  # Inner cavity size
+
+    # Core positions (center of each 2020 in the grid)
+    # X positions: -30, -10, +10, +30 (4 across, 20mm spacing)
+    # Z positions: +10 (top row), -10 (bottom row)
+    core_matrix = [
+        [1, 1, 1, 1],  # Top row (Z = +10)
+        [1, 0, 0, 1],  # Bottom row (Z = -10), C-slot in middle
+    ]
+
+    x_positions = [-30.0, -10.0, 10.0, 30.0]
+    z_positions = [10.0, -10.0]  # Top row first, then bottom
+
+    def make_rect_in_xz(x_center: float, z_center: float, width: float, height: float) -> int:
+        """Create a rectangle in the XZ plane (Y=0)."""
+        pts = [
+            gmsh.model.occ.addPoint(x_center - width/2, 0, z_center - height/2),
+            gmsh.model.occ.addPoint(x_center + width/2, 0, z_center - height/2),
+            gmsh.model.occ.addPoint(x_center + width/2, 0, z_center + height/2),
+            gmsh.model.occ.addPoint(x_center - width/2, 0, z_center + height/2),
+        ]
+        lines = [gmsh.model.occ.addLine(pts[i], pts[(i+1) % 4]) for i in range(4)]
+        wire = gmsh.model.occ.addWire(lines)
+        return gmsh.model.occ.addPlaneSurface([wire])
+
+    # Create outer boundary of entire profile
+    # Build as union of core outer boundaries, then cut inner holes
+    outer_rects = []
+    inner_holes = []
+
+    for row_idx, row in enumerate(core_matrix):
+        z_center = z_positions[row_idx]
+        for col_idx, present in enumerate(row):
+            if present:
+                x_center = x_positions[col_idx]
+
+                # Outer boundary of this core
+                outer_rect = make_rect_in_xz(x_center, z_center, core_size, core_size)
+                outer_rects.append((2, outer_rect))
+
+                # Inner cavity of this core
+                inner_rect = make_rect_in_xz(x_center, z_center, inner_size, inner_size)
+                inner_holes.append((2, inner_rect))
+
+    gmsh.model.occ.synchronize()
+
+    # Fuse all outer rectangles to get the C-beam outer boundary
+    if len(outer_rects) > 1:
+        fused_outer, _ = gmsh.model.occ.fuse([outer_rects[0]], outer_rects[1:])
+        gmsh.model.occ.synchronize()
+    else:
+        fused_outer = outer_rects
+
+    # Cut inner holes from the fused outer shape
+    if inner_holes:
+        result, _ = gmsh.model.occ.cut(fused_outer, inner_holes)
+        gmsh.model.occ.synchronize()
+
+        # Get the resulting surface
+        for dim, tag in result:
+            if dim == 2:
+                return tag
+
+    return -1
+
+
 def generate_ttc450_hollow_cbeam(
     output_msh: Path,
     beam_length: float = 600.0,
@@ -146,11 +229,14 @@ def generate_ttc450_hollow_cbeam(
 
         print(f"  Base frame rails added (4 x 2020 extrusions + 1 x 2040 mid-beam)")
 
-        print(f"Creating Y-beams: {PROFILE_WIDTH}mm wide x {PROFILE_HEIGHT}mm tall, extruded {beam_length}mm along Y")
+        print(f"Creating Y-beams: 4080 C-beam profile, extruded {beam_length}mm along Y")
 
         # LEFT Y-BEAM
-        # Profile: 40mm wide (X) x 80mm tall (Z), centered at origin in XZ plane
-        surf_left = create_hollow_rect_profile(PROFILE_WIDTH, PROFILE_HEIGHT, WALL_THICKNESS)
+        # C-beam profile: 80mm wide (X in profile) x 40mm tall (Z in profile)
+        # For Y-beam: need 40mm wide (X) x 80mm tall (Z), C-slot facing -X (outward)
+        surf_left = create_4080_cbeam_profile(wall=1.5)
+        # Rotate +90° around Y axis to get 40mm(X) x 80mm(Z), C-slot facing -X
+        gmsh.model.occ.rotate([(2, surf_left)], 0, 0, 0, 0, 1, 0, math.pi/2)
         # Translate profile to left Y-beam position before extrusion
         gmsh.model.occ.translate([(2, surf_left)], -y_beam_x_offset, -beam_length/2, y_beam_z_center)
         gmsh.model.occ.synchronize()
@@ -162,8 +248,10 @@ def generate_ttc450_hollow_cbeam(
                 print(f"  Left Y-beam: volume tag {tag}")
                 break
 
-        # RIGHT Y-BEAM
-        surf_right = create_hollow_rect_profile(PROFILE_WIDTH, PROFILE_HEIGHT, WALL_THICKNESS)
+        # RIGHT Y-BEAM (C-slot facing +X, outward)
+        surf_right = create_4080_cbeam_profile(wall=1.5)
+        # Rotate -90° around Y axis to get 40mm(X) x 80mm(Z), C-slot facing +X
+        gmsh.model.occ.rotate([(2, surf_right)], 0, 0, 0, 0, 1, 0, -math.pi/2)
         gmsh.model.occ.translate([(2, surf_right)], y_beam_x_offset, -beam_length/2, y_beam_z_center)
         gmsh.model.occ.synchronize()
         entities = gmsh.model.occ.extrude([(2, surf_right)], 0, beam_length, 0)
@@ -173,13 +261,15 @@ def generate_ttc450_hollow_cbeam(
                 print(f"  Right Y-beam: volume tag {tag}")
                 break
 
-        print(f"Creating X-gantry beam: {PROFILE_WIDTH}mm deep x {PROFILE_HEIGHT}mm tall, extruded {beam_length}mm along X")
+        print(f"Creating X-gantry beam: 4080 C-beam profile, extruded {beam_length}mm along X")
 
         # X-GANTRY BEAM
-        # Profile: 40mm deep (Y) x 80mm tall (Z), centered in YZ plane
-        # Create profile in XZ plane, then rotate 90° around Z to orient for X extrusion
-        surf_x = create_hollow_rect_profile(PROFILE_WIDTH, PROFILE_HEIGHT, WALL_THICKNESS)
-        # Rotate to put profile in YZ plane (for X extrusion)
+        # C-beam profile: 80mm wide x 40mm tall
+        # For X-beam: need 40mm deep (Y) x 80mm tall (Z), C-slot facing +Y (back)
+        surf_x = create_4080_cbeam_profile(wall=1.5)
+        # First rotate +90° around Y to get proper height orientation with inverted C-slot
+        gmsh.model.occ.rotate([(2, surf_x)], 0, 0, 0, 0, 1, 0, math.pi/2)
+        # Then rotate 90° around Z to orient profile for X extrusion
         gmsh.model.occ.rotate([(2, surf_x)], 0, 0, 0, 0, 0, 1, math.pi/2)
         # Translate to X-beam position (shifted +40mm in Y to align with riser plate tops)
         x_beam_y_offset = 40.0  # mm - align with sheared riser plate tops
