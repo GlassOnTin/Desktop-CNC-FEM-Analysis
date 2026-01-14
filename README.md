@@ -267,3 +267,9 @@ CNC/
 ## License
 
 MIT
+
+---
+
+## See Also
+
+**[Hexapod Stewart Platform Analysis](HEXAPOD.md)** - An alternative kinematic configuration using the same 600mm 4080 C-beam actuators. The hexapod provides symmetric stiffness (21 µm in both X and Y) and eliminates the gantry's 3.4x weaker Y-axis.
