@@ -1,4 +1,4 @@
-# CNC Gantry FEM Analysis
+# Desktop CNC FEM Analysis
 
 Finite Element Analysis of a TwoTrees TTC450-style CNC gantry structure using FEniCSx.
 
