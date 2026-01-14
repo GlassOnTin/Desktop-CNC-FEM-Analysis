@@ -18,11 +18,12 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 STRUT_LENGTH = 600.0          # Same as TTC450 beam length
 BASE_RADIUS = 300.0           # Base joint circle radius
 PLATFORM_RADIUS = 120.0       # Moving platform joint circle radius
-BASE_PAIR_ANGLE = 15.0        # Half-angle between joint pairs (degrees)
-PLATFORM_PAIR_ANGLE = 30.0    # Half-angle between joint pairs on platform
 
-# Platform at mid-height gives ~30° strut angle
-# This provides good stiffness while maintaining workspace
+# Joint pair angles - symmetric design with minimal twist
+# Using same angle for both creates pairs of nearly-parallel struts
+PAIR_HALF_ANGLE = 20.0        # Half-angle between joints in each pair (degrees)
+PLATFORM_ROTATION = 30.0      # Rotation of platform pairs relative to base (degrees)
+                              # 30° gives moderate twist; 0° would be no twist but singular
 
 # Base and platform plate dimensions
 BASE_THICKNESS = 20.0         # mm
@@ -39,25 +40,29 @@ MESH_SIZE_MAX = 20.0
 
 
 def calculate_joint_positions():
-    """Calculate base and platform joint positions for 6-6 Stewart platform."""
+    """Calculate base and platform joint positions for 6-6 Stewart platform.
+
+    Symmetric design: same pair angles on base and platform, with platform
+    rotated by PLATFORM_ROTATION degrees. Direct pairing (base[i] to platform[i])
+    creates 3 pairs of nearly-parallel struts.
+    """
     base_joints = []
     platform_joints = []
 
-    # Base joints: 3 pairs, 120° apart, each pair separated by 2*BASE_PAIR_ANGLE
+    # Base joints: 3 pairs, 120° apart, each pair separated by 2*PAIR_HALF_ANGLE
     for i in range(3):
         base_angle = i * 120.0  # degrees
-        # Two joints per pair
         for sign in [-1, 1]:
-            angle = np.radians(base_angle + sign * BASE_PAIR_ANGLE)
+            angle = np.radians(base_angle + sign * PAIR_HALF_ANGLE)
             x = BASE_RADIUS * np.cos(angle)
             y = BASE_RADIUS * np.sin(angle)
             base_joints.append((x, y, 0.0))
 
-    # Platform joints: 3 pairs, rotated 60° from base, smaller radius
+    # Platform joints: same pattern but rotated and smaller radius
     for i in range(3):
-        platform_angle = i * 120.0 + 60.0  # 60° offset from base
+        platform_angle = i * 120.0 + PLATFORM_ROTATION
         for sign in [-1, 1]:
-            angle = np.radians(platform_angle + sign * PLATFORM_PAIR_ANGLE)
+            angle = np.radians(platform_angle + sign * PAIR_HALF_ANGLE)
             x = PLATFORM_RADIUS * np.cos(angle)
             y = PLATFORM_RADIUS * np.sin(angle)
             platform_joints.append((x, y, 0.0))  # Z will be set by platform height
@@ -67,8 +72,7 @@ def calculate_joint_positions():
 
 def calculate_platform_height(base_joints, platform_joints, strut_length):
     """Calculate platform Z height such that average strut length matches target."""
-    # For Stewart platform, struts connect base[i] to platform[i] (or offset pattern)
-    # Using standard 6-6 pairing: strut i connects base[i] to platform[(i+1)%6]
+    # Direct pairing: strut i connects base[i] to platform[i]
 
     # Start with estimate based on strut angle
     z_estimate = strut_length * np.cos(np.radians(30))
@@ -77,11 +81,8 @@ def calculate_platform_height(base_joints, platform_joints, strut_length):
     for _ in range(10):
         total_length = 0
         for i in range(6):
-            # Strut pairing for 6-6 platform
             bi = base_joints[i]
-            # Offset pairing: each base joint connects to adjacent platform joint
-            pi_idx = (i + 1) % 6
-            pi = platform_joints[pi_idx].copy()
+            pi = platform_joints[i].copy()  # Direct pairing
             pi[2] = z_estimate
 
             length = np.linalg.norm(pi - bi)
@@ -221,10 +222,9 @@ def create_hexapod_geometry():
 
     print(f"\nStrut geometry:")
     for i in range(6):
-        # Strut pairing: base[i] connects to platform[(i+1)%6] for crossed pattern
+        # Direct pairing: base[i] connects to platform[i]
         bi = base_joints[i]
-        pi_idx = (i + 1) % 6
-        pi = platform_joints_3d[pi_idx]
+        pi = platform_joints_3d[i]
 
         # Strut vector
         strut_vec = pi - bi

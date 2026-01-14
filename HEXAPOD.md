@@ -8,7 +8,7 @@ This analysis explores an alternative CNC kinematic configuration - a 6-axis par
 
 ### Key Advantage: Symmetric Stiffness
 
-Unlike the TTC450 gantry which has a 3.4x weaker Y-axis, the hexapod provides nearly identical stiffness in all directions due to its symmetric parallel kinematic architecture.
+Unlike the TTC450 gantry which has a 3.4x weaker Y-axis, the hexapod provides identical stiffness in X and Y directions due to its symmetric parallel kinematic architecture.
 
 ## Comparison: Hexapod vs TTC450 Gantry
 
@@ -16,20 +16,20 @@ Both designs use identical **600mm 4080 C-beam actuators** with Aluminum 6061-T6
 
 | Load Case | TTC450 Gantry | Hexapod | Winner |
 |-----------|---------------|---------|--------|
-| **Z-axis weight** (50N down) | 10.3 µm | 4.5 µm | Hexapod (2.3x) |
-| **Heavy cut X** (100N + weight) | 15.7 µm | 20.7 µm | TTC450 (1.3x) |
-| **Heavy cut Y** (100N + weight) | 52.8 µm | 21.0 µm | Hexapod (2.5x) |
-| **Plunge cut** (100-150N Z) | 19.7 µm | 9.9 µm | Hexapod (2.0x) |
+| **Z-axis weight** (50N down) | 10.3 µm | 1.9 µm | Hexapod (5.4x) |
+| **Heavy cut X** (100N + weight) | 15.7 µm | 28.3 µm | TTC450 (1.8x) |
+| **Heavy cut Y** (100N + weight) | 52.8 µm | 28.0 µm | Hexapod (1.9x) |
+| **Plunge cut** (100-150N Z) | 19.7 µm | 4.5 µm | Hexapod (4.4x) |
 
 ### Key Findings
 
-1. **Hexapod eliminates the weak axis** - TTC450 is 3.4x weaker in Y than X; hexapod is symmetric (~21 µm in both X and Y)
+1. **Hexapod has perfect X/Y symmetry** - 28.3 µm in X, 28.0 µm in Y (essentially identical)
 
-2. **Hexapod is stiffer in Z** - Axial strut loading vs beam bending gives 2x improvement for plunge cuts
+2. **Hexapod is much stiffer in Z** - 5.4x better for static weight, 4.4x better for plunge cuts due to axial strut loading
 
-3. **TTC450 is slightly better in pure X** - Its X-axis aligns with the strong axis of the beams (16 vs 21 µm)
+3. **TTC450 is stiffer in X** - Its strong axis aligns with the gantry beam (16 vs 28 µm)
 
-4. **Overall**: Hexapod wins on 3 of 4 load cases, and critically fixes the Y-direction weakness
+4. **Hexapod eliminates the weak axis** - TTC450's Y-direction (53 µm) is nearly 2x worse than hexapod (28 µm)
 
 ---
 
@@ -41,10 +41,10 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 | Load Case | Cutting Force | Tool Deflection |
 |-----------|---------------|-----------------|
-| Z-axis weight only | 0 N | 4.5 µm |
-| **Heavy cut (X)** | 100 N | **20.7 µm** |
-| **Heavy cut (Y)** | 100 N | **21.0 µm** |
-| **Heavy plunge (Z)** | 100 N | **9.9 µm** |
+| Z-axis weight only | 0 N | 1.9 µm |
+| **Heavy cut (X)** | 100 N | **28.3 µm** |
+| **Heavy cut (Y)** | 100 N | **28.0 µm** |
+| **Heavy plunge (Z)** | 100 N | **4.5 µm** |
 
 ### Undeformed Mesh
 
@@ -68,21 +68,21 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 ### Stewart Platform Configuration
 
-The hexapod uses a 6-6 Stewart platform configuration with paired joints:
+The hexapod uses a symmetric 6-6 Stewart platform configuration with paired joints:
 
 | Parameter | Value |
 |-----------|-------|
 | Base radius | 300 mm |
 | Platform radius | 120 mm |
-| Strut length | 600 mm |
-| Platform height | 470 mm |
-| Strut angle | ~38° from vertical |
+| Strut length | 600 mm (all identical) |
+| Platform height | 564 mm |
+| Strut angle | 20° from vertical (all identical) |
 
 ### Joint Layout
 
-- **Base joints**: 3 pairs at 120° intervals, each pair separated by 30°
-- **Platform joints**: 3 pairs at 120° intervals, rotated 60° from base
-- **Strut pairing**: Crossed configuration for maximum stiffness
+- **Base joints**: 3 pairs at 120° intervals, each pair separated by 40° (±20°)
+- **Platform joints**: 3 pairs at 120° intervals, rotated 30° from base, same 40° spread
+- **Strut pairing**: Direct connection (base[i] to platform[i]) creates 3 pairs of parallel struts
 
 ### Strut Cross-Section
 
