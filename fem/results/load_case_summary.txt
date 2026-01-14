@@ -1,0 +1,31 @@
+TTC450 Load Case Analysis Results
+======================================================================
+
+Tool position: (0, 20, 200) mm (gantry midpoint)
+Material: Aluminum 6061-T6 (E=69 GPa, nu=0.33)
+
+Load Case            Fx       Fy       Fz       Tool Disp    Max Disp    
+                     (N)      (N)      (N)      (mm)         (mm)        
+----------------------------------------------------------------------
+gravity_only         0        0        0        0.0010       0.0010      
+z_axis_weight        0        0        -50      0.0103       0.0103      
+light_cut_x          20       0        -50      0.0106       0.0106      
+light_cut_y          0        20       -50      0.0159       0.0166      
+moderate_cut_x       50       0        -50      0.0119       0.0119      
+moderate_cut_y       0        50       -50      0.0289       0.0298      
+heavy_cut_x          100      0        -50      0.0157       0.0157      
+heavy_cut_y          0        100      -50      0.0528       0.0536      
+plunge_cut           0        0        -100     0.0197       0.0197      
+
+
+Detailed tool displacements (X, Y, Z components):
+----------------------------------------------------------------------
+gravity_only        : X=+0.0000, Y=+0.0002, Z=-0.0010 mm
+z_axis_weight       : X=+0.0000, Y=+0.0018, Z=-0.0102 mm
+light_cut_x         : X=+0.0024, Y=+0.0018, Z=-0.0102 mm
+light_cut_y         : X=+0.0000, Y=+0.0117, Z=-0.0108 mm
+moderate_cut_x      : X=+0.0059, Y=+0.0018, Z=-0.0102 mm
+moderate_cut_y      : X=-0.0000, Y=+0.0265, Z=-0.0117 mm
+heavy_cut_x         : X=+0.0118, Y=+0.0017, Z=-0.0102 mm
+heavy_cut_y         : X=-0.0000, Y=+0.0511, Z=-0.0132 mm
+plunge_cut          : X=+0.0000, Y=+0.0033, Z=-0.0194 mm

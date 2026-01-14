@@ -13,17 +13,31 @@ The geometry is based on the TwoTrees TTC450 Pro desktop CNC, modeled with param
 
 ## Results Summary
 
-### Static Analysis (Gravity Load)
+### Static Analysis (Cutting Loads)
 
-![Static Deflection](docs/images/static_gravity_warped.png)
+Tool loads applied at gantry midpoint with 5kg Z-axis + spindle weight (50N down).
 
-| Metric | Value |
-|--------|-------|
-| Max displacement | **0.001 mm** (1 µm) |
-| Location | Top of X-gantry beam |
-| Scale factor | 100,000× (exaggerated for visualization) |
+| Load Case | Cutting Force | Tool Deflection |
+|-----------|---------------|-----------------|
+| Z-axis weight only | 0 N | 10 µm |
+| Light cut (X) | 20 N | 11 µm |
+| Light cut (Y) | 20 N | 16 µm |
+| Moderate cut (X) | 50 N | 12 µm |
+| Moderate cut (Y) | 50 N | 29 µm |
+| **Heavy cut (X)** | 100 N | **16 µm** |
+| **Heavy cut (Y)** | 100 N | **53 µm** |
 
-The structure is very stiff under self-weight. Primary deflection is X-beam sag, with minor contribution from riser plate bending.
+#### Key Finding: Y Direction is 3-4× Weaker
+
+The gantry is significantly stiffer in X than Y. Force in X leverages the strong axis of the 4080 C-beam, while force in Y bends the riser plates.
+
+#### Heavy Cut - X Direction (100N)
+![Heavy Cut X](docs/images/ttc450_heavy_cut_x.png)
+
+#### Heavy Cut - Y Direction (100N)
+![Heavy Cut Y](docs/images/ttc450_heavy_cut_y.png)
+
+For finishing tolerances of ±25 µm (0.001"), heavy cuts along Y may exceed acceptable deflection.
 
 ### Modal Analysis (Natural Frequencies)
 
@@ -85,14 +99,20 @@ Wall thickness: **1.5mm** (calibrated to match actual C-beam cross-sectional are
 python fem/geometry/generate_ttc450_simple.py
 ```
 
-### Run FEM Analysis
+### Run FEM Analysis (Modal)
 ```bash
 python fem/analysis/run_ttc450_analysis.py
+```
+
+### Run Load Case Analysis (Static)
+```bash
+python fem/analysis/run_load_cases.py
 ```
 
 ### Generate Visualization Images
 ```bash
 python fem/visualization/render_results.py
+python fem/visualization/render_load_cases.py
 ```
 
 ### View Results in ParaView
@@ -157,12 +177,13 @@ All critical RPMs are below typical spindle range (8,000-24,000 RPM), so Mode 1 
 
 ## Design Observations
 
-1. **Weakest link:** The 2020 base frame is less stiff than the 4080 gantry beams, limiting Mode 1 frequency
-2. **Potential improvements:**
+1. **Y direction is the weak axis:** Under cutting loads, deflection in Y is 3-4× higher than in X due to riser plate bending
+2. **Base frame limits modal stiffness:** The 2020 base frame allows Y-shear, setting Mode 1 at 115 Hz
+3. **Potential improvements:**
+   - Stiffen riser plates (thicker, add gussets, or triangulated design)
    - Heavier base frame (4040 or steel tube)
    - Diagonal bracing in base plane
    - Cross-bracing between Y-beams at floor level
-   - Gussets at riser plate base corners
 
 ---
 
@@ -209,19 +230,19 @@ mamba activate cnc-fem
 CNC/
 ├── fem/
 │   ├── analysis/
-│   │   ├── fenicsx_static.py      # Static solver module
-│   │   ├── fenicsx_modal.py       # Modal solver module
-│   │   ├── run_ttc450_analysis.py # Main analysis script
+│   │   ├── run_ttc450_analysis.py # Modal analysis script
+│   │   ├── run_load_cases.py      # Static load case analysis
 │   │   └── run_ttc450_mpc.py      # MPC tie workflow
 │   ├── geometry/
 │   │   ├── generate_ttc450_simple.py  # Fused mesh generator
 │   │   ├── mesh_generator.py          # Multi-part generator
 │   │   └── calc_moment_of_inertia.py  # C-beam calibration
 │   ├── visualization/
-│   │   └── render_results.py      # Image generation
+│   │   ├── render_results.py      # Modal result images
+│   │   └── render_load_cases.py   # Load case images
 │   ├── results/
 │   │   ├── ttc450_hollow.msh      # Generated mesh
-│   │   ├── ttc450_static_gravity.* # Static results
+│   │   ├── ttc450_*.xdmf          # Load case results
 │   │   └── ttc450_modes/          # Modal results
 │   └── config.py                  # Material properties, load cases
 ├── docs/
