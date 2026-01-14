@@ -5,11 +5,23 @@ Finite Element Analysis of a TwoTrees TTC450-style CNC gantry structure using FE
 ## Overview
 
 This project performs structural analysis of a CNC router gantry to evaluate:
-- **Static deflection** under gravity and cutting loads
+- **Static deflection** under cutting loads
 - **Natural frequencies** and mode shapes for chatter prediction
-- **MPC tie constraints** for multi-part assemblies
 
 The geometry is based on the TwoTrees TTC450 Pro desktop CNC, modeled with parametric 4080 C-beam aluminum extrusion profiles.
+
+### Toolchain
+
+| Stage | Tool | Description |
+|-------|------|-------------|
+| Geometry | [gmsh](https://gmsh.info/) + OpenCASCADE | Parametric CAD geometry and tetrahedral meshing |
+| FEM Solver | [FEniCSx](https://fenicsproject.org/) (dolfinx) | Finite element assembly and linear elasticity |
+| Linear Algebra | [PETSc](https://petsc.org/) | Sparse matrix solvers (LU factorization) |
+| Eigensolvers | [SLEPc](https://slepc.upv.es/) | Shift-invert spectral transformation for modal analysis |
+| Visualization | [PyVista](https://pyvista.org/) / VTK | Batch rendering of deformed meshes |
+| Interactive | [ParaView](https://www.paraview.org/) | XDMF result exploration |
+
+All geometry is created programmatically in Python using gmsh's OpenCASCADE kernel - no manual CAD modeling required.
 
 ## Results Summary
 
