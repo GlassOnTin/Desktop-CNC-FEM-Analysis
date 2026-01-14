@@ -48,19 +48,19 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 ### Undeformed Mesh
 
-![Hexapod Mesh](docs/images/hexapod_mesh.png?v=4)
+![Hexapod Mesh](docs/images/hexapod_mesh.png?v=5)
 
 ### Heavy Cut - X Direction (100N)
 
-![Heavy Cut X](docs/images/hexapod_heavy_cut_x.png?v=4)
+![Heavy Cut X](docs/images/hexapod_heavy_cut_x.png?v=5)
 
 ### Heavy Cut - Y Direction (100N)
 
-![Heavy Cut Y](docs/images/hexapod_heavy_cut_y.png?v=4)
+![Heavy Cut Y](docs/images/hexapod_heavy_cut_y.png?v=5)
 
 ### Heavy Plunge Cut - Z Direction (150N)
 
-![Heavy Cut Z](docs/images/hexapod_heavy_cut_z.png?v=4)
+![Heavy Cut Z](docs/images/hexapod_heavy_cut_z.png?v=5)
 
 ---
 
