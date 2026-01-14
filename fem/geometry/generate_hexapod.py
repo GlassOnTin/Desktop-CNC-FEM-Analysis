@@ -15,7 +15,10 @@ RESULTS_DIR = PROJECT_ROOT / "fem" / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Hexapod geometry parameters (mm)
-STRUT_LENGTH = 600.0          # Same as TTC450 beam length
+BEAM_LENGTH = 600.0           # Physical beam length (same as TTC450)
+STROKE_FRACTION = 0.5         # Carriage position along beam (0.5 = mid-stroke)
+STRUT_LENGTH = BEAM_LENGTH * STROKE_FRACTION  # Effective base-to-platform distance
+
 BASE_RADIUS = 300.0           # Base joint circle radius
 PLATFORM_RADIUS = 120.0       # Moving platform joint circle radius
 
@@ -198,10 +201,11 @@ def create_hexapod_geometry():
     platform_z = calculate_platform_height(base_joints, platform_joints, STRUT_LENGTH)
 
     print(f"Hexapod geometry:")
+    print(f"  Beam length: {BEAM_LENGTH} mm (4080 C-beam)")
+    print(f"  Stroke position: {STROKE_FRACTION*100:.0f}% ({STRUT_LENGTH:.0f}mm effective)")
     print(f"  Base radius: {BASE_RADIUS} mm")
     print(f"  Platform radius: {PLATFORM_RADIUS} mm")
     print(f"  Platform height: {platform_z:.1f} mm")
-    print(f"  Target strut length: {STRUT_LENGTH} mm")
 
     # Offset platform joints to correct Z height
     platform_joints_3d = platform_joints.copy()
