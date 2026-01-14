@@ -215,12 +215,13 @@ def create_hexapod_geometry():
     platform_plate = gmsh.model.occ.addCylinder(0, 0, platform_z, 0, 0, PLATFORM_THICKNESS,
                                                  PLATFORM_RADIUS + 30)
 
-    # Create 6 struts as hollow rectangular tubes
+    # Create 6 struts as hollow rectangular tubes (4080 C-beam profile)
     strut_volumes = []
-    strut_cross = 40.0  # 40x40mm cross-section (simplified from 4080)
+    strut_width = PROFILE_HEIGHT   # 40mm (short dimension)
+    strut_depth = PROFILE_WIDTH    # 80mm (long dimension, along radial direction)
     wall_t = WALL_THICKNESS
 
-    print(f"\nStrut geometry:")
+    print(f"\nStrut geometry (4080 C-beam: {strut_width}x{strut_depth}mm):")
     for i in range(6):
         # Direct pairing: base[i] connects to platform[i]
         bi = base_joints[i]
@@ -241,6 +242,7 @@ def create_hexapod_geometry():
 
         # Create cross-section at base joint
         # Find local coordinate system for the strut
+        # x_loc points radially outward, y_loc is tangential
         if abs(strut_dir[2]) < 0.99:
             up = np.array([0, 0, 1])
         else:
@@ -250,17 +252,19 @@ def create_hexapod_geometry():
         x_loc = x_loc / np.linalg.norm(x_loc)
         y_loc = np.cross(strut_dir, x_loc)
 
-        # Outer profile points
-        hs = strut_cross / 2
+        # Outer profile points - 40mm (width) x 80mm (depth)
+        # depth is along x_loc (radial), width is along y_loc (tangential)
+        hw = strut_width / 2   # 20mm half-width
+        hd = strut_depth / 2   # 40mm half-depth
 
         def to_global(lx, ly, along=0):
             return bi + along * strut_dir + lx * x_loc + ly * y_loc
 
-        # Create outer wire at base
-        p1 = gmsh.model.occ.addPoint(*to_global(-hs, -hs))
-        p2 = gmsh.model.occ.addPoint(*to_global(hs, -hs))
-        p3 = gmsh.model.occ.addPoint(*to_global(hs, hs))
-        p4 = gmsh.model.occ.addPoint(*to_global(-hs, hs))
+        # Create outer wire at base (80mm in x_loc direction, 40mm in y_loc)
+        p1 = gmsh.model.occ.addPoint(*to_global(-hd, -hw))
+        p2 = gmsh.model.occ.addPoint(*to_global(hd, -hw))
+        p3 = gmsh.model.occ.addPoint(*to_global(hd, hw))
+        p4 = gmsh.model.occ.addPoint(*to_global(-hd, hw))
 
         l1 = gmsh.model.occ.addLine(p1, p2)
         l2 = gmsh.model.occ.addLine(p2, p3)
@@ -269,13 +273,14 @@ def create_hexapod_geometry():
 
         outer_wire = gmsh.model.occ.addCurveLoop([l1, l2, l3, l4])
 
-        # Inner profile points (hollow)
-        ihs = hs - wall_t
+        # Inner profile points (hollow) - same wall thickness all around
+        ihw = hw - wall_t  # inner half-width
+        ihd = hd - wall_t  # inner half-depth
 
-        p5 = gmsh.model.occ.addPoint(*to_global(-ihs, -ihs))
-        p6 = gmsh.model.occ.addPoint(*to_global(ihs, -ihs))
-        p7 = gmsh.model.occ.addPoint(*to_global(ihs, ihs))
-        p8 = gmsh.model.occ.addPoint(*to_global(-ihs, ihs))
+        p5 = gmsh.model.occ.addPoint(*to_global(-ihd, -ihw))
+        p6 = gmsh.model.occ.addPoint(*to_global(ihd, -ihw))
+        p7 = gmsh.model.occ.addPoint(*to_global(ihd, ihw))
+        p8 = gmsh.model.occ.addPoint(*to_global(-ihd, ihw))
 
         l5 = gmsh.model.occ.addLine(p5, p6)
         l6 = gmsh.model.occ.addLine(p6, p7)

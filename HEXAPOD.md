@@ -16,20 +16,20 @@ Both designs use identical **600mm 4080 C-beam actuators** with Aluminum 6061-T6
 
 | Load Case | TTC450 Gantry | Hexapod | Winner |
 |-----------|---------------|---------|--------|
-| **Z-axis weight** (50N down) | 10.3 µm | 1.9 µm | Hexapod (5.4x) |
-| **Heavy cut X** (100N + weight) | 15.7 µm | 28.3 µm | TTC450 (1.8x) |
-| **Heavy cut Y** (100N + weight) | 52.8 µm | 28.0 µm | Hexapod (1.9x) |
-| **Plunge cut** (100-150N Z) | 19.7 µm | 4.5 µm | Hexapod (4.4x) |
+| **Z-axis weight** (50N down) | 10.3 µm | 1.2 µm | Hexapod (8.6x) |
+| **Heavy cut X** (100N + weight) | 15.7 µm | 15.2 µm | Tie |
+| **Heavy cut Y** (100N + weight) | 52.8 µm | 15.3 µm | Hexapod (3.5x) |
+| **Plunge cut** (100-150N Z) | 19.7 µm | 3.0 µm | Hexapod (6.6x) |
 
 ### Key Findings
 
-1. **Hexapod has perfect X/Y symmetry** - 28.3 µm in X, 28.0 µm in Y (essentially identical)
+1. **Hexapod has perfect X/Y symmetry** - 15.2 µm in X, 15.3 µm in Y (essentially identical)
 
-2. **Hexapod is much stiffer in Z** - 5.4x better for static weight, 4.4x better for plunge cuts due to axial strut loading
+2. **Hexapod is much stiffer in Z** - 8.6x better for static weight, 6.6x better for plunge cuts due to axial strut loading
 
-3. **TTC450 is stiffer in X** - Its strong axis aligns with the gantry beam (16 vs 28 µm)
+3. **X-direction is now equal** - Both designs achieve ~15-16 µm for 100N lateral load
 
-4. **Hexapod eliminates the weak axis** - TTC450's Y-direction (53 µm) is nearly 2x worse than hexapod (28 µm)
+4. **Hexapod eliminates the weak axis** - TTC450's Y-direction (53 µm) is 3.5x worse than hexapod (15 µm)
 
 ---
 
@@ -41,26 +41,26 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 | Load Case | Cutting Force | Tool Deflection |
 |-----------|---------------|-----------------|
-| Z-axis weight only | 0 N | 1.9 µm |
-| **Heavy cut (X)** | 100 N | **28.3 µm** |
-| **Heavy cut (Y)** | 100 N | **28.0 µm** |
-| **Heavy plunge (Z)** | 100 N | **4.5 µm** |
+| Z-axis weight only | 0 N | 1.2 µm |
+| **Heavy cut (X)** | 100 N | **15.2 µm** |
+| **Heavy cut (Y)** | 100 N | **15.3 µm** |
+| **Heavy plunge (Z)** | 100 N | **3.0 µm** |
 
 ### Undeformed Mesh
 
-![Hexapod Mesh](docs/images/hexapod_mesh.png?v=2)
+![Hexapod Mesh](docs/images/hexapod_mesh.png?v=3)
 
 ### Heavy Cut - X Direction (100N)
 
-![Heavy Cut X](docs/images/hexapod_heavy_cut_x.png?v=2)
+![Heavy Cut X](docs/images/hexapod_heavy_cut_x.png?v=3)
 
 ### Heavy Cut - Y Direction (100N)
 
-![Heavy Cut Y](docs/images/hexapod_heavy_cut_y.png?v=2)
+![Heavy Cut Y](docs/images/hexapod_heavy_cut_y.png?v=3)
 
 ### Heavy Plunge Cut - Z Direction (150N)
 
-![Heavy Cut Z](docs/images/hexapod_heavy_cut_z.png?v=2)
+![Heavy Cut Z](docs/images/hexapod_heavy_cut_z.png?v=3)
 
 ---
 
