@@ -120,7 +120,8 @@ def render_load_case(h5_path: Path, title: str, output_name: str, scale_mm: floa
                      f"Max displacement: {max_disp*1000:.1f} \u03bcm (scaled {scale_factor:.0f}x)",
                      position='upper_left', font_size=14, color='black')
 
-    setup_isometric_camera(plotter, warped, elevation=25, azimuth=45)
+    # Lower elevation to show pillar extending below base
+    setup_isometric_camera(plotter, warped, elevation=15, azimuth=45)
 
     output_path = IMAGES_DIR / f"{output_name}.png"
     plotter.screenshot(str(output_path))
@@ -152,7 +153,8 @@ def render_undeformed_mesh(msh_path: Path, output_name: str):
                      f"Nodes: {n_points:,}  Elements: {n_cells:,}",
                      position='upper_left', font_size=14, color='black')
 
-    setup_isometric_camera(plotter, mesh, elevation=25, azimuth=45)
+    # Lower elevation to show pillar extending below base
+    setup_isometric_camera(plotter, mesh, elevation=15, azimuth=45)
 
     output_path = IMAGES_DIR / f"{output_name}.png"
     plotter.screenshot(str(output_path))
