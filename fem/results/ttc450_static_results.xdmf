@@ -2,12 +2,12 @@
 <!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
 <Xdmf Version="3.0" xmlns:xi="https://www.w3.org/2001/XInclude">
   <Domain>
-    <Grid Name="mesh" GridType="Uniform">
-      <Topology TopologyType="Tetrahedron" NumberOfElements="53013" NodesPerElement="4">
-        <DataItem Dimensions="53013 4" NumberType="Int" Format="HDF">hexapod_z_axis_weight.h5:/Mesh/mesh/topology</DataItem>
+    <Grid Name="Grid" GridType="Uniform">
+      <Topology TopologyType="Tetrahedron" NumberOfElements="12800" NodesPerElement="4">
+        <DataItem Dimensions="12800 4" NumberType="Int" Format="HDF">ttc450_static_results.h5:/Mesh/Grid/topology</DataItem>
       </Topology>
       <Geometry GeometryType="XYZ">
-        <DataItem Dimensions="17541 3" Format="HDF">hexapod_z_axis_weight.h5:/Mesh/mesh/geometry</DataItem>
+        <DataItem Dimensions="4604 3" Format="HDF">ttc450_static_results.h5:/Mesh/Grid/geometry</DataItem>
       </Geometry>
     </Grid>
     <Grid Name="displacement" GridType="Collection" CollectionType="Temporal">
@@ -15,7 +15,7 @@
         <xi:include xpointer="xpointer(/Xdmf/Domain/Grid[@GridType='Uniform'][1]/*[self::Topology or self::Geometry])" />
         <Time Value="0" />
         <Attribute Name="displacement" AttributeType="Vector" Center="Node">
-          <DataItem Dimensions="17541 3" Format="HDF">hexapod_z_axis_weight.h5:/Function/displacement/0</DataItem>
+          <DataItem Dimensions="4604 3" Format="HDF">ttc450_static_results.h5:/Function/displacement/0</DataItem>
         </Attribute>
       </Grid>
     </Grid>

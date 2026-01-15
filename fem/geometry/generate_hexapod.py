@@ -33,9 +33,10 @@ PLATFORM_ROTATION = 30.0      # Rotation of platform pairs relative to base (deg
                               # 30° gives moderate twist; 0° would be no twist but singular
 
 # Base and platform dimensions
-BASE_CYLINDER_HEIGHT = 600.0  # mm - fixed pillar height (accommodates beam extensions)
-BASE_CYLINDER_RADIUS = 350.0  # mm - outer radius of central pillar tube (must exceed BASE_RADIUS)
+BASE_PILLAR_HEIGHT = 600.0    # mm - fixed pillar height (accommodates beam extensions)
+BASE_PILLAR_RADIUS = 350.0    # mm - outer radius (circumradius) of hexagonal pillar
 BASE_WALL_THICKNESS = 6.0     # mm - wall thickness of hollow pillar
+BASE_HEX_ROTATION = 0.0       # degrees - rotation of hexagon (0 = vertex at +X)
 PLATFORM_THICKNESS = 15.0     # mm
 
 # 4080 C-beam profile (same as TTC450)
@@ -211,7 +212,7 @@ def create_hexapod_geometry():
     print(f"  Stroke position: {STROKE_FRACTION*100:.0f}% (midstroke)")
     print(f"  Base attachment: {BASE_ATTACH_POINT*100:.0f}% along beam ({BASE_ATTACH_POINT*BEAM_LENGTH:.0f}mm from bottom)")
     print(f"  Effective strut length: {STRUT_LENGTH:.0f} mm (base joint to platform)")
-    print(f"  Base pillar: {BASE_CYLINDER_HEIGHT}mm tall, {BASE_CYLINDER_RADIUS*2}mm OD, {BASE_WALL_THICKNESS}mm wall")
+    print(f"  Base pillar: hexagonal, {BASE_PILLAR_HEIGHT}mm tall, {BASE_PILLAR_RADIUS*2}mm across, {BASE_WALL_THICKNESS}mm wall")
     print(f"  Base joint radius: {BASE_RADIUS} mm")
     print(f"  Platform radius: {PLATFORM_RADIUS} mm")
     print(f"  Platform height: {platform_z:.1f} mm (above pillar top)")
@@ -220,16 +221,44 @@ def create_hexapod_geometry():
     platform_joints_3d = platform_joints.copy()
     platform_joints_3d[:, 2] = platform_z
 
-    # Create base pillar (hollow tube with capped top)
-    # Outer cylinder extends from z=-BASE_CYLINDER_HEIGHT to z=0
-    outer_cyl = gmsh.model.occ.addCylinder(0, 0, -BASE_CYLINDER_HEIGHT, 0, 0, BASE_CYLINDER_HEIGHT,
-                                            BASE_CYLINDER_RADIUS)
-    # Inner cylinder (to be subtracted for hollow tube)
-    inner_radius = BASE_CYLINDER_RADIUS - BASE_WALL_THICKNESS
-    inner_cyl = gmsh.model.occ.addCylinder(0, 0, -BASE_CYLINDER_HEIGHT, 0, 0, BASE_CYLINDER_HEIGHT - BASE_WALL_THICKNESS,
-                                            inner_radius)
+    # Create base pillar (hollow hexagonal tube with capped top)
+    # Hexagon vertices oriented so edges align with strut paths
+    def create_hexagonal_prism(radius, height, z_bottom, rotation_deg=0):
+        """Create a hexagonal prism using OCC."""
+        points = []
+        rot = np.radians(rotation_deg)
+        for i in range(6):
+            angle = rot + i * np.pi / 3  # 60° intervals
+            x = radius * np.cos(angle)
+            y = radius * np.sin(angle)
+            points.append(gmsh.model.occ.addPoint(x, y, z_bottom))
+
+        # Create bottom face edges
+        lines = []
+        for i in range(6):
+            lines.append(gmsh.model.occ.addLine(points[i], points[(i+1) % 6]))
+
+        wire = gmsh.model.occ.addCurveLoop(lines)
+        face = gmsh.model.occ.addPlaneSurface([wire])
+
+        # Extrude to create prism
+        extrusion = gmsh.model.occ.extrude([(2, face)], 0, 0, height)
+        for item in extrusion:
+            if item[0] == 3:  # Volume
+                return item[1]
+        return None
+
+    # Outer hexagonal prism
+    outer_hex = create_hexagonal_prism(BASE_PILLAR_RADIUS, BASE_PILLAR_HEIGHT,
+                                        -BASE_PILLAR_HEIGHT, BASE_HEX_ROTATION)
+
+    # Inner hexagonal prism (for hollow tube) - shorter to leave cap
+    inner_radius = BASE_PILLAR_RADIUS - BASE_WALL_THICKNESS
+    inner_hex = create_hexagonal_prism(inner_radius, BASE_PILLAR_HEIGHT - BASE_WALL_THICKNESS,
+                                        -BASE_PILLAR_HEIGHT, BASE_HEX_ROTATION)
+
     # Cut inner from outer to create hollow tube with capped top
-    base_cut, _ = gmsh.model.occ.cut([(3, outer_cyl)], [(3, inner_cyl)])
+    base_cut, _ = gmsh.model.occ.cut([(3, outer_hex)], [(3, inner_hex)])
     base_plate = base_cut[0][1]  # Get the resulting volume tag
 
     # Create platform plate (smaller hexagon)
@@ -390,9 +419,10 @@ def create_hexapod_geometry():
         'beam_length': BEAM_LENGTH,
         'base_radius': BASE_RADIUS,
         'platform_radius': PLATFORM_RADIUS,
-        'base_pillar_height': BASE_CYLINDER_HEIGHT,
-        'base_pillar_radius': BASE_CYLINDER_RADIUS,
+        'base_pillar_height': BASE_PILLAR_HEIGHT,
+        'base_pillar_radius': BASE_PILLAR_RADIUS,
         'base_pillar_wall': BASE_WALL_THICKNESS,
+        'base_pillar_shape': 'hexagonal',
     }
 
     import json

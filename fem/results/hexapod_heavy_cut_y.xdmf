@@ -3,11 +3,11 @@
 <Xdmf Version="3.0" xmlns:xi="https://www.w3.org/2001/XInclude">
   <Domain>
     <Grid Name="mesh" GridType="Uniform">
-      <Topology TopologyType="Tetrahedron" NumberOfElements="56882" NodesPerElement="4">
-        <DataItem Dimensions="56882 4" NumberType="Int" Format="HDF">hexapod_heavy_cut_y.h5:/Mesh/mesh/topology</DataItem>
+      <Topology TopologyType="Tetrahedron" NumberOfElements="53013" NodesPerElement="4">
+        <DataItem Dimensions="53013 4" NumberType="Int" Format="HDF">hexapod_heavy_cut_y.h5:/Mesh/mesh/topology</DataItem>
       </Topology>
       <Geometry GeometryType="XYZ">
-        <DataItem Dimensions="18677 3" Format="HDF">hexapod_heavy_cut_y.h5:/Mesh/mesh/geometry</DataItem>
+        <DataItem Dimensions="17541 3" Format="HDF">hexapod_heavy_cut_y.h5:/Mesh/mesh/geometry</DataItem>
       </Geometry>
     </Grid>
     <Grid Name="displacement" GridType="Collection" CollectionType="Temporal">
@@ -15,7 +15,7 @@
         <xi:include xpointer="xpointer(/Xdmf/Domain/Grid[@GridType='Uniform'][1]/*[self::Topology or self::Geometry])" />
         <Time Value="0" />
         <Attribute Name="displacement" AttributeType="Vector" Center="Node">
-          <DataItem Dimensions="18677 3" Format="HDF">hexapod_heavy_cut_y.h5:/Function/displacement/0</DataItem>
+          <DataItem Dimensions="17541 3" Format="HDF">hexapod_heavy_cut_y.h5:/Function/displacement/0</DataItem>
         </Attribute>
       </Grid>
     </Grid>

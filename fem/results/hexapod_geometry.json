@@ -70,5 +70,6 @@
   "platform_radius": 120.0,
   "base_pillar_height": 600.0,
   "base_pillar_radius": 350.0,
-  "base_pillar_wall": 6.0
+  "base_pillar_wall": 6.0,
+  "base_pillar_shape": "hexagonal"
 }

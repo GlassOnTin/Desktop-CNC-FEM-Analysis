@@ -16,14 +16,14 @@ Both designs use identical **600mm 4080 C-beam actuators** with Aluminum 6061-T6
 
 | Load Case | TTC450 Gantry | Hexapod (50% stroke) | Winner |
 |-----------|---------------|----------------------|--------|
-| **Z-axis weight** (50N down) | 10.3 µm | 1.5 µm | Hexapod (7x) |
-| **Heavy cut X** (100N + weight) | 15.7 µm | 3.1 µm | Hexapod (5x) |
-| **Heavy cut Y** (100N + weight) | 52.8 µm | 3.1 µm | Hexapod (17x) |
-| **Plunge cut** (100-150N Z) | 19.7 µm | 3.3 µm | Hexapod (6x) |
+| **Z-axis weight** (50N down) | 10.3 µm | 1.3 µm | Hexapod (8x) |
+| **Heavy cut X** (100N + weight) | 15.7 µm | 3.4 µm | Hexapod (5x) |
+| **Heavy cut Y** (100N + weight) | 52.8 µm | 3.3 µm | Hexapod (16x) |
+| **Plunge cut** (100-150N Z) | 19.7 µm | 3.1 µm | Hexapod (6x) |
 
 ### Key Findings
 
-1. **Hexapod has perfect X/Y symmetry** - 3.1 µm in both X and Y (identical)
+1. **Hexapod has near-perfect X/Y symmetry** - 3.3-3.4 µm in X and Y
 
 2. **Hexapod is dramatically stiffer** - 5-17x better than TTC450 in all directions
 
@@ -41,26 +41,26 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 | Load Case | Cutting Force | Tool Deflection |
 |-----------|---------------|-----------------|
-| Z-axis weight only | 0 N | 1.5 µm |
-| **Heavy cut (X)** | 100 N | **3.1 µm** |
-| **Heavy cut (Y)** | 100 N | **3.1 µm** |
-| **Heavy plunge (Z)** | 100 N | **3.3 µm** |
+| Z-axis weight only | 0 N | 1.3 µm |
+| **Heavy cut (X)** | 100 N | **3.4 µm** |
+| **Heavy cut (Y)** | 100 N | **3.3 µm** |
+| **Heavy plunge (Z)** | 100 N | **3.1 µm** |
 
 ### Undeformed Mesh
 
-![Hexapod Mesh](docs/images/hexapod_mesh.png?v=8)
+![Hexapod Mesh](docs/images/hexapod_mesh.png?v=9)
 
 ### Heavy Cut - X Direction (100N)
 
-![Heavy Cut X](docs/images/hexapod_heavy_cut_x.png?v=8)
+![Heavy Cut X](docs/images/hexapod_heavy_cut_x.png?v=9)
 
 ### Heavy Cut - Y Direction (100N)
 
-![Heavy Cut Y](docs/images/hexapod_heavy_cut_y.png?v=8)
+![Heavy Cut Y](docs/images/hexapod_heavy_cut_y.png?v=9)
 
 ### Heavy Plunge Cut - Z Direction (150N)
 
-![Heavy Cut Z](docs/images/hexapod_heavy_cut_z.png?v=8)
+![Heavy Cut Z](docs/images/hexapod_heavy_cut_z.png?v=9)
 
 ---
 
@@ -70,14 +70,15 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 The hexapod uses a symmetric 6-6 Stewart platform configuration with paired joints.
 Beams are fixed-length 4080 C-beams with sliding carriages for actuation.
-The base is a 600mm tall hollow cylindrical pillar that accommodates the beam extensions.
+The base is a 600mm tall hollow hexagonal prism that accommodates the beam extensions,
+with edges aligned to allow struts to pass without intersection.
 
 | Parameter | Value |
 |-----------|-------|
 | Beam length | 600 mm (4080 C-beam) |
 | Stroke position | 50% (mid-stroke) |
 | Effective strut length | 300 mm |
-| Base pillar | 700mm OD × 600mm tall, 6mm wall |
+| Base pillar | Hexagonal, 700mm across × 600mm tall, 6mm wall |
 | Base joint radius | 300 mm |
 | Platform radius | 120 mm |
 | Platform height | 219 mm |
@@ -98,8 +99,8 @@ Each strut uses a 40×80mm hollow rectangular section (4080 C-beam profile):
 
 ### FEM Mesh
 
-- **Nodes:** 18,677
-- **Elements:** 56,882 (tetrahedra)
+- **Nodes:** 17,541
+- **Elements:** 53,013 (tetrahedra)
 - **Boundary conditions:** Pillar bottom face fixed
 
 ---
@@ -188,9 +189,9 @@ fem/
 ## Conclusions
 
 The hexapod Stewart platform provides:
-- **5-17x better stiffness** than TTC450 gantry across all load cases
-- **Perfect X/Y symmetry** - 3.1 µm in both directions (identical)
-- **Excellent Z-axis stiffness** - 3.3 µm under 150N plunge load
+- **5-16x better stiffness** than TTC450 gantry across all load cases
+- **Near-perfect X/Y symmetry** - 3.3-3.4 µm in both directions
+- **Excellent Z-axis stiffness** - 3.1 µm under 150N plunge load
 
 However, for a practical hobby CNC, the Cartesian gantry remains more practical due to simpler control, larger workspace, and easier construction.
 
