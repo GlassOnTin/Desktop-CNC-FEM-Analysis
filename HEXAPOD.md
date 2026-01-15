@@ -66,7 +66,7 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 Animation showing the hexapod performing a 60mm radius × 80mm deep helical bore operation (3 revolutions).
 
-![Hexapod Helical Bore](docs/images/hexapod_helix.gif)
+![Hexapod Helical Bore](docs/images/hexapod_helix.gif?v=2)
 
 ---
 
