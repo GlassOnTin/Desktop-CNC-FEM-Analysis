@@ -66,7 +66,7 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 Animation showing the hexapod performing a 60mm radius × 80mm deep helical bore operation (3 revolutions). Ball joints at platform, universal joints at base allow strut reorientation without axial rotation.
 
-![Hexapod Helical Bore](docs/images/hexapod_helix.gif?v=4)
+![Hexapod Helical Bore](docs/images/hexapod_helix.gif?v=5)
 
 ---
 

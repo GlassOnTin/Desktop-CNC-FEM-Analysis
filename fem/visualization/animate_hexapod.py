@@ -222,7 +222,8 @@ def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
     direction = direction / length
 
     # Create local coordinate system with FIXED orientation
-    # x_local points radially outward from center (no twist as platform moves)
+    # C-beam open side faces inward (toward center)
+    # y_local points radially outward, so x_local (80mm depth) is tangential
     if base_joint_pos is not None:
         # Radial direction from origin to base joint (horizontal plane)
         radial = np.array([base_joint_pos[0], base_joint_pos[1], 0])
@@ -232,19 +233,21 @@ def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
         else:
             radial = np.array([1, 0, 0])
 
-        # x_local is radial direction projected perpendicular to strut
-        x_local = radial - np.dot(radial, direction) * direction
-        x_len = np.linalg.norm(x_local)
-        if x_len > 1e-6:
-            x_local = x_local / x_len
+        # y_local points radially outward (open C-beam side faces inward)
+        y_local = radial - np.dot(radial, direction) * direction
+        y_len = np.linalg.norm(y_local)
+        if y_len > 1e-6:
+            y_local = y_local / y_len
         else:
             # Fallback if radial is parallel to strut
             if abs(direction[2]) < 0.99:
                 up = np.array([0, 0, 1])
             else:
                 up = np.array([1, 0, 0])
-            x_local = np.cross(up, direction)
-            x_local = x_local / np.linalg.norm(x_local)
+            y_local = np.cross(direction, up)
+            y_local = y_local / np.linalg.norm(y_local)
+
+        x_local = np.cross(y_local, direction)
     else:
         # Default orientation
         if abs(direction[2]) < 0.99:
@@ -253,8 +256,7 @@ def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
             up = np.array([1, 0, 0])
         x_local = np.cross(up, direction)
         x_local = x_local / np.linalg.norm(x_local)
-
-    y_local = np.cross(direction, x_local)
+        y_local = np.cross(direction, x_local)
 
     # Create box vertices
     hw, hd = width/2, depth/2
