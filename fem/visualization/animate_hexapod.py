@@ -312,7 +312,7 @@ def render_frame(frame_idx, base_joints, platform_joints_local, neutral_z,
         strut_mesh = create_strut_mesh(beam_bottom, beam_top, STRUT_WIDTH, STRUT_DEPTH)
         if strut_mesh:
             color = 'steelblue' if i % 2 == 0 else 'royalblue'
-            plotter.add_mesh(strut_mesh, color=color, opacity=0.8)
+            plotter.add_mesh(strut_mesh, color=color, opacity=1.0)
 
     # Add platform
     platform_mesh = create_platform_mesh(platform_joints_world, PLATFORM_THICKNESS,
