@@ -391,12 +391,11 @@ def render_frame(frame_idx, base_joints, platform_joints_local, neutral_z,
                      f"Progress: {progress:.0f}%",
                      position='upper_left', font_size=12, color='black')
 
-    # Set camera
-    bounds = [-500, 500, -500, 500, -650, 350]
+    # Set camera - fixed position, no rotation
     cx, cy, cz = 0, 0, -100
     dist = 1500
     elevation = 20
-    azimuth = 45 + frame_idx * 0.5  # Slow rotation
+    azimuth = 45
 
     angle_z = np.radians(elevation)
     angle_xy = np.radians(azimuth)
