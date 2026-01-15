@@ -37,10 +37,10 @@ STRUT_WIDTH = 40.0
 STRUT_DEPTH = 80.0
 
 # Animation parameters
-HELIX_RADIUS = 60.0       # mm - bore radius
-HELIX_DEPTH = 80.0        # mm - total depth of cut
-HELIX_REVOLUTIONS = 3     # number of spiral revolutions
-N_FRAMES = 120            # frames for full animation
+HELIX_RADIUS = 80.0       # mm - bore radius
+HELIX_DEPTH = 180.0       # mm - total depth of cut (shows strut extension)
+HELIX_REVOLUTIONS = 4     # number of spiral revolutions
+N_FRAMES = 150            # frames for full animation
 FPS = 30                  # frames per second for GIF
 
 
