@@ -131,16 +131,17 @@ def inverse_kinematics(base_joints, platform_joints_local, platform_pose):
     return strut_lengths, platform_joints_world
 
 
-def generate_helix_toolpath(center, radius, depth, revolutions, n_points):
+def generate_helix_toolpath(center, radius, depth, revolutions, n_points, direction='up'):
     """
     Generate a helical toolpath for boring operation.
 
     Args:
-        center: (x, y, z) center of helix at top
+        center: (x, y, z) center of helix at start
         radius: radius of the helix
-        depth: total depth (positive = downward)
+        depth: total depth of travel (always positive)
         revolutions: number of complete revolutions
         n_points: number of points on path
+        direction: 'up' for lifting out of bore, 'down' for cutting into bore
 
     Returns:
         List of (x, y, z) points
@@ -155,7 +156,11 @@ def generate_helix_toolpath(center, radius, depth, revolutions, n_points):
 
         x = cx + radius * np.cos(angle)
         y = cy + radius * np.sin(angle)
-        z = cz - z_offset  # Negative because cutting downward
+
+        if direction == 'up':
+            z = cz + z_offset  # Positive - lifting upward out of bore
+        else:
+            z = cz - z_offset  # Negative - cutting downward into bore
 
         points.append((x, y, z))
 
@@ -211,8 +216,9 @@ def create_hexagonal_prism_mesh(radius, height, z_bottom, wall_thickness):
 def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
     """Create a box mesh representing a strut with fixed orientation.
 
-    The strut orientation is fixed based on the base joint position -
-    one face always points radially outward (no axial rotation).
+    The strut orientation is fixed based on the base joint angular position -
+    uses world-aligned reference then rotates by fixed angle to face inward.
+    This prevents rotation artifacts as the strut tilts.
     """
     # Direction vector
     direction = end - start
@@ -221,42 +227,34 @@ def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
         return None
     direction = direction / length
 
-    # Create local coordinate system with FIXED orientation
-    # C-beam open side faces inward (toward center)
-    # y_local points radially outward, so x_local (80mm depth) is tangential
+    # Step 1: Create world-aligned perpendicular axes
+    # Use world Z as reference to get consistent "tangent" direction
+    world_z = np.array([0, 0, 1])
+    x_local = np.cross(world_z, direction)
+    x_len = np.linalg.norm(x_local)
+
+    if x_len < 1e-6:
+        # Strut is nearly vertical, use world X as reference
+        x_local = np.cross(np.array([1, 0, 0]), direction)
+        x_len = np.linalg.norm(x_local)
+        if x_len < 1e-6:
+            x_local = np.array([0, 1, 0])
+            x_len = 1.0
+
+    x_local = x_local / x_len
+    y_local = np.cross(direction, x_local)
+
+    # Step 2: Rotate around strut axis so open C-beam side faces inward
+    # The base joint angle determines the fixed rotation for this strut
     if base_joint_pos is not None:
-        # Radial direction from origin to base joint (horizontal plane)
-        radial = np.array([base_joint_pos[0], base_joint_pos[1], 0])
-        radial_len = np.linalg.norm(radial)
-        if radial_len > 1e-6:
-            radial = radial / radial_len
-        else:
-            radial = np.array([1, 0, 0])
-
-        # y_local points radially outward (open C-beam side faces inward)
-        y_local = radial - np.dot(radial, direction) * direction
-        y_len = np.linalg.norm(y_local)
-        if y_len > 1e-6:
-            y_local = y_local / y_len
-        else:
-            # Fallback if radial is parallel to strut
-            if abs(direction[2]) < 0.99:
-                up = np.array([0, 0, 1])
-            else:
-                up = np.array([1, 0, 0])
-            y_local = np.cross(direction, up)
-            y_local = y_local / np.linalg.norm(y_local)
-
-        x_local = np.cross(y_local, direction)
-    else:
-        # Default orientation
-        if abs(direction[2]) < 0.99:
-            up = np.array([0, 0, 1])
-        else:
-            up = np.array([1, 0, 0])
-        x_local = np.cross(up, direction)
-        x_local = x_local / np.linalg.norm(x_local)
-        y_local = np.cross(direction, x_local)
+        base_angle = np.arctan2(base_joint_pos[1], base_joint_pos[0])
+        # Rotate by (base_angle + 90°) to orient open side toward center
+        # The +90° is because x_local starts tangential, we want y to face inward
+        twist = base_angle + np.pi / 2
+        cos_t, sin_t = np.cos(twist), np.sin(twist)
+        x_new = cos_t * x_local + sin_t * y_local
+        y_new = -sin_t * x_local + cos_t * y_local
+        x_local, y_local = x_new, y_new
 
     # Create box vertices
     hw, hd = width/2, depth/2
@@ -457,15 +455,22 @@ def main():
         pj[2] = 0  # Keep at 0 in local frame
 
     # Generate helical toolpath
-    # Start at center of platform at neutral height
-    helix_center = (0, 0, neutral_z + PLATFORM_THICKNESS)
+    # Start with platform LOW (struts at ~2/3 extension) and lift UP (to ~1/3 extension)
+    # At neutral (50% stroke), effective strut length is ~300mm
+    # We want to show struts going from 2/3 extension (400mm) to 1/3 extension (200mm)
+    # This means platform starts LOW and ends HIGH
+    #
+    # Start position: below neutral by ~60% of helix depth
+    # End position: above neutral by ~40% of helix depth
+    helix_start_z = neutral_z - HELIX_DEPTH * 0.6 + PLATFORM_THICKNESS
 
     toolpath = generate_helix_toolpath(
-        center=helix_center,
+        center=(0, 0, helix_start_z),
         radius=HELIX_RADIUS,
         depth=HELIX_DEPTH,
         revolutions=HELIX_REVOLUTIONS,
-        n_points=N_FRAMES
+        n_points=N_FRAMES,
+        direction='up'  # Spiral upward - lifting out of bore
     )
 
     print(f"Toolpath: {len(toolpath)} points")
