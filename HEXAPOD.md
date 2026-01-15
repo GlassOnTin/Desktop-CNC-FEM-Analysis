@@ -66,7 +66,7 @@ Tool loads applied at platform center with 5kg Z-axis + spindle weight (50N down
 
 Animation showing the hexapod retracting from an 80mm radius × 180mm deep helical bore (4 revolutions). Platform starts low (struts extended ~2/3) and lifts up (struts retract to ~1/3), demonstrating the parallel kinematic motion. Ball joints at platform, universal joints at base allow strut reorientation without axial rotation.
 
-![Hexapod Helical Bore](docs/images/hexapod_helix.gif?v=9)
+![Hexapod Helical Bore](docs/images/hexapod_helix.gif?v=10)
 
 ---
 

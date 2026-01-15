@@ -226,39 +226,39 @@ def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
         return None
     direction = direction / length
 
-    # y_local must be:
-    # 1. Horizontal (no Z component) - keeps wide face vertical
+    # x_local must be:
+    # 1. Horizontal (no Z component) - keeps one face vertical
     # 2. Perpendicular to strut direction
     # 3. Pointing toward center (Z-axis)
     #
     # The only horizontal vectors perpendicular to direction are ±(-dy, dx, 0)
-    y_local = np.array([-direction[1], direction[0], 0])
-    y_len = np.linalg.norm(y_local)
+    x_local = np.array([-direction[1], direction[0], 0])
+    x_len = np.linalg.norm(x_local)
 
-    if y_len > 0.01:
-        y_local = y_local / y_len
+    if x_len > 0.01:
+        x_local = x_local / x_len
 
-        # Choose sign so y_local points inward (toward Z-axis)
+        # Choose sign so x_local points inward (toward Z-axis)
         if base_joint_pos is not None:
             inward = -np.array([base_joint_pos[0], base_joint_pos[1], 0])
             inward = inward / np.linalg.norm(inward)
-            if np.dot(y_local, inward) < 0:
-                y_local = -y_local
+            if np.dot(x_local, inward) < 0:
+                x_local = -x_local
     else:
         # Strut is nearly vertical - use inward direction directly
         if base_joint_pos is not None:
-            y_local = -np.array([base_joint_pos[0], base_joint_pos[1], 0])
-            y_local = y_local / np.linalg.norm(y_local)
+            x_local = -np.array([base_joint_pos[0], base_joint_pos[1], 0])
+            x_local = x_local / np.linalg.norm(x_local)
         else:
-            y_local = np.array([1, 0, 0])
+            x_local = np.array([1, 0, 0])
 
-    # x_local completes the right-hand coordinate system
-    x_local = np.cross(y_local, direction)
-    x_len = np.linalg.norm(x_local)
-    if x_len > 1e-6:
-        x_local = x_local / x_len
+    # y_local completes the right-hand coordinate system
+    y_local = np.cross(direction, x_local)
+    y_len = np.linalg.norm(y_local)
+    if y_len > 1e-6:
+        y_local = y_local / y_len
     else:
-        x_local = np.array([0, 0, 1])
+        y_local = np.array([0, 0, 1])
 
     # Create box vertices
     hw, hd = width/2, depth/2
@@ -394,8 +394,8 @@ def render_frame(frame_idx, base_joints, platform_joints_local, neutral_z,
                      position='upper_left', font_size=12, color='black')
 
     # Set camera - fixed position, no rotation
-    cx, cy, cz = 0, 0, -100
-    dist = 1500
+    cx, cy, cz = 0, 0, 0
+    dist = 1800
     elevation = 20
     azimuth = 45
 
