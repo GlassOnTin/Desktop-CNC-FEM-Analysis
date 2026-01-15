@@ -208,8 +208,12 @@ def create_hexagonal_prism_mesh(radius, height, z_bottom, wall_thickness):
     return mesh
 
 
-def create_strut_mesh(start, end, width=40, depth=80):
-    """Create a box mesh representing a strut."""
+def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
+    """Create a box mesh representing a strut with fixed orientation.
+
+    The strut orientation is fixed based on the base joint position -
+    one face always points radially outward (no axial rotation).
+    """
     # Direction vector
     direction = end - start
     length = np.linalg.norm(direction)
@@ -217,14 +221,39 @@ def create_strut_mesh(start, end, width=40, depth=80):
         return None
     direction = direction / length
 
-    # Create local coordinate system
-    if abs(direction[2]) < 0.99:
-        up = np.array([0, 0, 1])
-    else:
-        up = np.array([1, 0, 0])
+    # Create local coordinate system with FIXED orientation
+    # x_local points radially outward from center (no twist as platform moves)
+    if base_joint_pos is not None:
+        # Radial direction from origin to base joint (horizontal plane)
+        radial = np.array([base_joint_pos[0], base_joint_pos[1], 0])
+        radial_len = np.linalg.norm(radial)
+        if radial_len > 1e-6:
+            radial = radial / radial_len
+        else:
+            radial = np.array([1, 0, 0])
 
-    x_local = np.cross(up, direction)
-    x_local = x_local / np.linalg.norm(x_local)
+        # x_local is radial direction projected perpendicular to strut
+        x_local = radial - np.dot(radial, direction) * direction
+        x_len = np.linalg.norm(x_local)
+        if x_len > 1e-6:
+            x_local = x_local / x_len
+        else:
+            # Fallback if radial is parallel to strut
+            if abs(direction[2]) < 0.99:
+                up = np.array([0, 0, 1])
+            else:
+                up = np.array([1, 0, 0])
+            x_local = np.cross(up, direction)
+            x_local = x_local / np.linalg.norm(x_local)
+    else:
+        # Default orientation
+        if abs(direction[2]) < 0.99:
+            up = np.array([0, 0, 1])
+        else:
+            up = np.array([1, 0, 0])
+        x_local = np.cross(up, direction)
+        x_local = x_local / np.linalg.norm(x_local)
+
     y_local = np.cross(direction, x_local)
 
     # Create box vertices
@@ -254,6 +283,18 @@ def create_strut_mesh(start, end, width=40, depth=80):
     faces_flat = [item for sublist in faces for item in sublist]
 
     return pv.PolyData(vertices, faces=faces_flat)
+
+
+def create_ball_joint(center, radius=15):
+    """Create a ball joint (sphere) mesh."""
+    return pv.Sphere(radius=radius, center=center)
+
+
+def create_universal_joint(center, axis, radius=20, height=25):
+    """Create a universal/bearing joint (cylinder) mesh."""
+    # Cylinder aligned with strut axis
+    cyl = pv.Cylinder(center=center, direction=axis, radius=radius, height=height)
+    return cyl
 
 
 def create_platform_mesh(joints, thickness=15, radius=150):
@@ -295,7 +336,7 @@ def render_frame(frame_idx, base_joints, platform_joints_local, neutral_z,
     )
     plotter.add_mesh(pillar, color='lightgray', opacity=0.5, show_edges=True)
 
-    # Add struts
+    # Add struts with joints
     for i in range(6):
         bi = base_joints[i]
         pi = np.array(platform_joints_world[i])
@@ -309,10 +350,22 @@ def render_frame(frame_idx, base_joints, platform_joints_local, neutral_z,
         beam_bottom = bi - 300.0 * strut_dir
         beam_top = pi  # Platform at top
 
-        strut_mesh = create_strut_mesh(beam_bottom, beam_top, STRUT_WIDTH, STRUT_DEPTH)
+        # Create strut with fixed orientation (no axial rotation)
+        strut_mesh = create_strut_mesh(beam_bottom, beam_top, STRUT_WIDTH, STRUT_DEPTH,
+                                        base_joint_pos=bi)
         if strut_mesh:
             color = 'steelblue' if i % 2 == 0 else 'royalblue'
             plotter.add_mesh(strut_mesh, color=color, opacity=1.0)
+
+        # Add ball joint at platform end (top)
+        ball_joint = create_ball_joint(pi, radius=18)
+        plotter.add_mesh(ball_joint, color='silver', opacity=1.0)
+
+        # Add universal joint at base end
+        # Position slightly above the base attachment point
+        universal_pos = bi + 20 * strut_dir
+        universal_joint = create_universal_joint(universal_pos, strut_dir, radius=22, height=30)
+        plotter.add_mesh(universal_joint, color='darkgray', opacity=1.0)
 
     # Add platform
     platform_mesh = create_platform_mesh(platform_joints_world, PLATFORM_THICKNESS,
