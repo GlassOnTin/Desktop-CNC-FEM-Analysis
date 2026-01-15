@@ -216,9 +216,8 @@ def create_hexagonal_prism_mesh(radius, height, z_bottom, wall_thickness):
 def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
     """Create a box mesh representing a strut with fixed orientation.
 
-    The strut orientation is fixed based on the base joint angular position -
-    uses world-aligned reference then rotates by fixed angle to face inward.
-    This prevents rotation artifacts as the strut tilts.
+    The wide face (80mm) remains vertical and faces toward the Z-axis.
+    y_local is kept horizontal to prevent any roll/twist appearance.
     """
     # Direction vector
     direction = end - start
@@ -227,34 +226,39 @@ def create_strut_mesh(start, end, width=40, depth=80, base_joint_pos=None):
         return None
     direction = direction / length
 
-    # Step 1: Create world-aligned perpendicular axes
-    # Use world Z as reference to get consistent "tangent" direction
-    world_z = np.array([0, 0, 1])
-    x_local = np.cross(world_z, direction)
+    # y_local must be:
+    # 1. Horizontal (no Z component) - keeps wide face vertical
+    # 2. Perpendicular to strut direction
+    # 3. Pointing toward center (Z-axis)
+    #
+    # The only horizontal vectors perpendicular to direction are ±(-dy, dx, 0)
+    y_local = np.array([-direction[1], direction[0], 0])
+    y_len = np.linalg.norm(y_local)
+
+    if y_len > 0.01:
+        y_local = y_local / y_len
+
+        # Choose sign so y_local points inward (toward Z-axis)
+        if base_joint_pos is not None:
+            inward = -np.array([base_joint_pos[0], base_joint_pos[1], 0])
+            inward = inward / np.linalg.norm(inward)
+            if np.dot(y_local, inward) < 0:
+                y_local = -y_local
+    else:
+        # Strut is nearly vertical - use inward direction directly
+        if base_joint_pos is not None:
+            y_local = -np.array([base_joint_pos[0], base_joint_pos[1], 0])
+            y_local = y_local / np.linalg.norm(y_local)
+        else:
+            y_local = np.array([1, 0, 0])
+
+    # x_local completes the right-hand coordinate system
+    x_local = np.cross(y_local, direction)
     x_len = np.linalg.norm(x_local)
-
-    if x_len < 1e-6:
-        # Strut is nearly vertical, use world X as reference
-        x_local = np.cross(np.array([1, 0, 0]), direction)
-        x_len = np.linalg.norm(x_local)
-        if x_len < 1e-6:
-            x_local = np.array([0, 1, 0])
-            x_len = 1.0
-
-    x_local = x_local / x_len
-    y_local = np.cross(direction, x_local)
-
-    # Step 2: Rotate around strut axis so open C-beam side faces inward
-    # The base joint angle determines the fixed rotation for this strut
-    if base_joint_pos is not None:
-        base_angle = np.arctan2(base_joint_pos[1], base_joint_pos[0])
-        # Rotate by (base_angle + 90°) to orient open side toward center
-        # The +90° is because x_local starts tangential, we want y to face inward
-        twist = base_angle + np.pi / 2
-        cos_t, sin_t = np.cos(twist), np.sin(twist)
-        x_new = cos_t * x_local + sin_t * y_local
-        y_new = -sin_t * x_local + cos_t * y_local
-        x_local, y_local = x_new, y_new
+    if x_len > 1e-6:
+        x_local = x_local / x_len
+    else:
+        x_local = np.array([0, 0, 1])
 
     # Create box vertices
     hw, hd = width/2, depth/2
