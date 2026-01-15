@@ -16,8 +16,12 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Hexapod geometry parameters (mm)
 BEAM_LENGTH = 600.0           # Physical beam length (same as TTC450)
-STROKE_FRACTION = 0.5         # Carriage position along beam (0.5 = mid-stroke)
-STRUT_LENGTH = BEAM_LENGTH * STROKE_FRACTION  # Effective base-to-platform distance
+STROKE_FRACTION = 0.5         # Carriage position along beam (0.5 = midstroke)
+
+# At 50% stroke: base attaches at midpoint, platform at top
+# This gives 300mm effective strut length (half the beam above base joint)
+BASE_ATTACH_POINT = 0.5       # Base joint at middle of beam (0.5 = 300mm from bottom)
+STRUT_LENGTH = STROKE_FRACTION * BEAM_LENGTH  # Effective strut: 300mm at 50% stroke
 
 BASE_RADIUS = 300.0           # Base joint circle radius
 PLATFORM_RADIUS = 120.0       # Moving platform joint circle radius
@@ -28,8 +32,10 @@ PAIR_HALF_ANGLE = 20.0        # Half-angle between joints in each pair (degrees)
 PLATFORM_ROTATION = 30.0      # Rotation of platform pairs relative to base (degrees)
                               # 30° gives moderate twist; 0° would be no twist but singular
 
-# Base and platform plate dimensions
-BASE_THICKNESS = 20.0         # mm
+# Base and platform dimensions
+BASE_CYLINDER_HEIGHT = 600.0  # mm - fixed pillar height (accommodates beam extensions)
+BASE_CYLINDER_RADIUS = 350.0  # mm - outer radius of central pillar tube (must exceed BASE_RADIUS)
+BASE_WALL_THICKNESS = 6.0     # mm - wall thickness of hollow pillar
 PLATFORM_THICKNESS = 15.0     # mm
 
 # 4080 C-beam profile (same as TTC450)
@@ -202,18 +208,29 @@ def create_hexapod_geometry():
 
     print(f"Hexapod geometry:")
     print(f"  Beam length: {BEAM_LENGTH} mm (4080 C-beam)")
-    print(f"  Stroke position: {STROKE_FRACTION*100:.0f}% ({STRUT_LENGTH:.0f}mm effective)")
-    print(f"  Base radius: {BASE_RADIUS} mm")
+    print(f"  Stroke position: {STROKE_FRACTION*100:.0f}% (midstroke)")
+    print(f"  Base attachment: {BASE_ATTACH_POINT*100:.0f}% along beam ({BASE_ATTACH_POINT*BEAM_LENGTH:.0f}mm from bottom)")
+    print(f"  Effective strut length: {STRUT_LENGTH:.0f} mm (base joint to platform)")
+    print(f"  Base pillar: {BASE_CYLINDER_HEIGHT}mm tall, {BASE_CYLINDER_RADIUS*2}mm OD, {BASE_WALL_THICKNESS}mm wall")
+    print(f"  Base joint radius: {BASE_RADIUS} mm")
     print(f"  Platform radius: {PLATFORM_RADIUS} mm")
-    print(f"  Platform height: {platform_z:.1f} mm")
+    print(f"  Platform height: {platform_z:.1f} mm (above pillar top)")
 
     # Offset platform joints to correct Z height
     platform_joints_3d = platform_joints.copy()
     platform_joints_3d[:, 2] = platform_z
 
-    # Create base plate (hexagonal, thick)
-    base_plate = gmsh.model.occ.addCylinder(0, 0, -BASE_THICKNESS, 0, 0, BASE_THICKNESS,
-                                             BASE_RADIUS + 50)
+    # Create base pillar (hollow tube with capped top)
+    # Outer cylinder extends from z=-BASE_CYLINDER_HEIGHT to z=0
+    outer_cyl = gmsh.model.occ.addCylinder(0, 0, -BASE_CYLINDER_HEIGHT, 0, 0, BASE_CYLINDER_HEIGHT,
+                                            BASE_CYLINDER_RADIUS)
+    # Inner cylinder (to be subtracted for hollow tube)
+    inner_radius = BASE_CYLINDER_RADIUS - BASE_WALL_THICKNESS
+    inner_cyl = gmsh.model.occ.addCylinder(0, 0, -BASE_CYLINDER_HEIGHT, 0, 0, BASE_CYLINDER_HEIGHT - BASE_WALL_THICKNESS,
+                                            inner_radius)
+    # Cut inner from outer to create hollow tube with capped top
+    base_cut, _ = gmsh.model.occ.cut([(3, outer_cyl)], [(3, inner_cyl)])
+    base_plate = base_cut[0][1]  # Get the resulting volume tag
 
     # Create platform plate (smaller hexagon)
     platform_plate = gmsh.model.occ.addCylinder(0, 0, platform_z, 0, 0, PLATFORM_THICKNESS,
@@ -225,13 +242,22 @@ def create_hexapod_geometry():
     strut_depth = PROFILE_WIDTH    # 80mm (long dimension, along radial direction)
     wall_t = WALL_THICKNESS
 
+    # Calculate beam extension distances
+    # At 50% stroke: base at midpoint, platform at top of beam
+    below_base = BASE_ATTACH_POINT * BEAM_LENGTH        # Beam extends 300mm below base joint
+    above_platform = 0.0  # Platform at beam top, nothing extends above
+
     print(f"\nStrut geometry (4080 C-beam: {strut_width}x{strut_depth}mm):")
+    print(f"  Full beam length: {BEAM_LENGTH}mm")
+    print(f"  Beam below base: {below_base:.0f}mm")
+    print(f"  Beam above platform: {above_platform:.0f}mm")
+
     for i in range(6):
         # Direct pairing: base[i] connects to platform[i]
         bi = base_joints[i]
         pi = platform_joints_3d[i]
 
-        # Strut vector
+        # Strut vector (from base to platform)
         strut_vec = pi - bi
         strut_len = np.linalg.norm(strut_vec)
         strut_dir = strut_vec / strut_len
@@ -239,12 +265,15 @@ def create_hexapod_geometry():
         # Strut angle from vertical
         angle_from_vert = np.degrees(np.arccos(abs(strut_dir[2])))
 
-        print(f"  Strut {i+1}: length={strut_len:.1f}mm, angle={angle_from_vert:.1f}° from vertical")
+        # Full beam endpoints
+        beam_bottom = bi - below_base * strut_dir      # Extends below base joint
+        beam_top = pi + above_platform * strut_dir     # Extends above platform joint
+
+        print(f"  Strut {i+1}: effective={strut_len:.1f}mm, angle={angle_from_vert:.1f}° from vertical")
 
         # Create strut as a box rotated to align with strut axis
         # Use OCC extrusion along the strut direction
 
-        # Create cross-section at base joint
         # Find local coordinate system for the strut
         # x_loc points radially outward, y_loc is tangential
         if abs(strut_dir[2]) < 0.99:
@@ -261,14 +290,15 @@ def create_hexapod_geometry():
         hw = strut_width / 2   # 20mm half-width
         hd = strut_depth / 2   # 40mm half-depth
 
-        def to_global(lx, ly, along=0):
-            return bi + along * strut_dir + lx * x_loc + ly * y_loc
+        def to_global(lx, ly, pos):
+            """Convert local coords to global, pos is a 3D point."""
+            return pos + lx * x_loc + ly * y_loc
 
-        # Create outer wire at base (80mm in x_loc direction, 40mm in y_loc)
-        p1 = gmsh.model.occ.addPoint(*to_global(-hd, -hw))
-        p2 = gmsh.model.occ.addPoint(*to_global(hd, -hw))
-        p3 = gmsh.model.occ.addPoint(*to_global(hd, hw))
-        p4 = gmsh.model.occ.addPoint(*to_global(-hd, hw))
+        # Create outer wire at beam bottom (80mm in x_loc direction, 40mm in y_loc)
+        p1 = gmsh.model.occ.addPoint(*to_global(-hd, -hw, beam_bottom))
+        p2 = gmsh.model.occ.addPoint(*to_global(hd, -hw, beam_bottom))
+        p3 = gmsh.model.occ.addPoint(*to_global(hd, hw, beam_bottom))
+        p4 = gmsh.model.occ.addPoint(*to_global(-hd, hw, beam_bottom))
 
         l1 = gmsh.model.occ.addLine(p1, p2)
         l2 = gmsh.model.occ.addLine(p2, p3)
@@ -281,10 +311,10 @@ def create_hexapod_geometry():
         ihw = hw - wall_t  # inner half-width
         ihd = hd - wall_t  # inner half-depth
 
-        p5 = gmsh.model.occ.addPoint(*to_global(-ihd, -ihw))
-        p6 = gmsh.model.occ.addPoint(*to_global(ihd, -ihw))
-        p7 = gmsh.model.occ.addPoint(*to_global(ihd, ihw))
-        p8 = gmsh.model.occ.addPoint(*to_global(-ihd, ihw))
+        p5 = gmsh.model.occ.addPoint(*to_global(-ihd, -ihw, beam_bottom))
+        p6 = gmsh.model.occ.addPoint(*to_global(ihd, -ihw, beam_bottom))
+        p7 = gmsh.model.occ.addPoint(*to_global(ihd, ihw, beam_bottom))
+        p8 = gmsh.model.occ.addPoint(*to_global(-ihd, ihw, beam_bottom))
 
         l5 = gmsh.model.occ.addLine(p5, p6)
         l6 = gmsh.model.occ.addLine(p6, p7)
@@ -296,11 +326,11 @@ def create_hexapod_geometry():
         # Create hollow cross-section
         cross_section = gmsh.model.occ.addPlaneSurface([outer_wire, inner_wire])
 
-        # Extrude along strut direction
+        # Extrude full beam length along strut direction
         extrusion = gmsh.model.occ.extrude([(2, cross_section)],
-                                            strut_len * strut_dir[0],
-                                            strut_len * strut_dir[1],
-                                            strut_len * strut_dir[2])
+                                            BEAM_LENGTH * strut_dir[0],
+                                            BEAM_LENGTH * strut_dir[1],
+                                            BEAM_LENGTH * strut_dir[2])
 
         # Find the volume from extrusion
         for item in extrusion:
@@ -357,8 +387,12 @@ def create_hexapod_geometry():
         'platform_joints': platform_joints_3d.tolist(),
         'platform_z': platform_z,
         'strut_length': STRUT_LENGTH,
+        'beam_length': BEAM_LENGTH,
         'base_radius': BASE_RADIUS,
         'platform_radius': PLATFORM_RADIUS,
+        'base_pillar_height': BASE_CYLINDER_HEIGHT,
+        'base_pillar_radius': BASE_CYLINDER_RADIUS,
+        'base_pillar_wall': BASE_WALL_THICKNESS,
     }
 
     import json

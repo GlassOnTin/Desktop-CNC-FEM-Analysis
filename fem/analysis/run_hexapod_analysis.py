@@ -226,7 +226,7 @@ def main():
     # Function space
     V = fem.functionspace(domain, ("Lagrange", 1, (3,)))
 
-    # Boundary condition: fix base plate bottom (Z < 0)
+    # Boundary condition: fix base pillar bottom (lowest Z)
     z_min = bbox_min[2]
     tol = 1.0
 

@@ -1,0 +1,22 @@
+Hexapod Load Case Analysis Results
+======================================================================
+
+Platform height: 219.0 mm
+Tool position: (0, 0, 226.5) mm
+Material: Aluminum 6061-T6 (E=69 GPa, nu=0.33)
+
+Load Case            Fx       Fy       Fz       Tool Disp    (µm)        
+                     (N)      (N)      (N)      (mm)                     
+----------------------------------------------------------------------
+z_axis_weight        0        0        -50      0.0015       1.5         
+heavy_cut_x          100      0        -50      0.0031       3.1         
+heavy_cut_y          0        100      -50      0.0031       3.1         
+heavy_cut_z          0        0        -150     0.0033       3.3         
+
+
+Detailed tool displacements (X, Y, Z components):
+----------------------------------------------------------------------
+z_axis_weight       : X=-0.0000, Y=-0.0001, Z=-0.0015 mm
+heavy_cut_x         : X=+0.0028, Y=-0.0001, Z=-0.0015 mm
+heavy_cut_y         : X=-0.0000, Y=+0.0027, Z=-0.0014 mm
+heavy_cut_z         : X=-0.0000, Y=-0.0002, Z=-0.0033 mm
